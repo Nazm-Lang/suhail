@@ -1,9 +1,0 @@
-# docs/ pages kept off the public site (internal governance and audits)
-agent-governance.md
-agent-evals.md
-change-governance.md
-runbook.md
-integration-testing.md
-audit-n100.md
-audit-n107.md
-maintainability.md

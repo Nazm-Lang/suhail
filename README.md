@@ -10,8 +10,7 @@ through `git archive` at a ref, so a working tree's uncommitted edits never reac
 
 | File | |
 | --- | --- |
-| `SUMMARY.md` | the book's table of contents |
-| `exclude.txt` | internal pages kept off the public site |
+| `SUMMARY.md` | the book's table of contents, and the allowlist: only the pages it names are published |
 | `prep.py` | turns the repository's `docs/` and `README.md` into the book's source |
 | `book.toml` | mdBook settings |
 | `deploy.sh` | build at a ref, then rsync to the web root |

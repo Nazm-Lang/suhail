@@ -17,9 +17,8 @@ cd "$(dirname "$0")"
 SHA=$(git -C "$REPO" rev-parse --short "$REF^{commit}")
 rm -rf build && mkdir -p build/snapshot
 git -C "$REPO" archive "$REF" docs README.md | tar -x -C build/snapshot
-# Drop internal pages before prep, so links to them render as plain text.
-grep -vE '^(#|$)' exclude.txt | while read -r f; do rm "build/snapshot/docs/$f"; done
-python3 prep.py build/snapshot build/src
+# Only the pages SUMMARY.md names are published; links to anything else go to GitHub at $SHA.
+python3 prep.py build/snapshot build/src SUMMARY.md "$(git -C "$REPO" rev-parse "$REF^{commit}")"
 cp SUMMARY.md build/src/SUMMARY.md
 printf '\n---\n\n*Built from commit `%s`.*\n' "$SHA" >> build/src/README.md
 

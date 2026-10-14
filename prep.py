@@ -4,9 +4,10 @@
 - docs/X.md          -> src/X.md
 - README.md          -> src/README.md (the book's introduction)
 - docs/grammar.ebnf  -> src/grammar.md (wrapped in a code fence)
-- Links that resolve to another page inside docs/ are kept (made relative to the new location).
-- Links that leave docs/ (crates/, tests/, ...) point into a private repository, so they are
-  rendered as plain code text.
+- Only the pages named in SUMMARY.md are published (an allowlist): the site is user
+  documentation; design notes, audits and governance stay in the repository.
+- Links to a published page are kept (made relative to the new location); links to anything else
+  in the repository point at it on GitHub, at the ref the site was built from.
 - ```nazm fences are highlighted as Rust (highlight.js has no Nazm grammar).
 """
 import os
@@ -15,7 +16,10 @@ import re
 import shutil
 import sys
 
-snap, src = sys.argv[1], sys.argv[2]
+snap, src, summary, ref = sys.argv[1], sys.argv[2], sys.argv[3], sys.argv[4]
+GITHUB = "https://github.com/Nazm-Lang/nazm/blob/" + ref + "/"
+with open(summary, encoding="utf-8") as f:
+    PUBLISHED = set(re.findall(r"\]\(([^)\s]+\.md)\)", f.read()))
 docs = os.path.join(snap, "docs")
 
 LINK = re.compile(r"(!?)\[([^\]\n]*)\]\(([^)\s]+)\)")
@@ -28,19 +32,20 @@ def rewrite_link(m, origin_dir):
     path, _, frag = target.partition("#")
     # origin_dir is the file's directory relative to the repo root, e.g. "docs/releases" or "".
     resolved = posixpath.normpath(posixpath.join(origin_dir, path))
-    if not os.path.isfile(os.path.join(snap, resolved)):
+    if not os.path.isfile(os.path.join(snap, resolved)) and path.startswith("docs/"):
         # Some pages write repo-root paths ("docs/roadmap.md") from inside docs/.
         resolved = posixpath.normpath(path)
-    if resolved.startswith("docs/") and os.path.isfile(os.path.join(snap, resolved)):
-        inner = resolved[len("docs/"):]
-        if inner == "grammar.ebnf":
-            inner = "grammar.md"
+    inner = resolved[len("docs/"):] if resolved.startswith("docs/") else None
+    if inner == "grammar.ebnf":
+        inner = "grammar.md"
+    if resolved == "README.md":
+        inner = "README.md"
+    if inner in PUBLISHED and os.path.exists(os.path.join(snap, resolved)):
         here = origin_dir[len("docs/"):] if origin_dir.startswith("docs/") else ""
         rel = posixpath.relpath(inner, here or ".")
         return f"[{text}]({rel}{'#' + frag if frag else ''})"
-    # Outside docs/: the repository is private, keep the name but drop the link.
-    shown = text if text.startswith("`") else f"`{text}`" if text == target else text
-    return shown
+    # Not on the site: link the file in the public repository.
+    return f"[{text}]({GITHUB}{resolved}{'#' + frag if frag else ''})"
 
 
 def rewrite_line(line, origin_dir):
@@ -80,7 +85,7 @@ for root, _, files in os.walk(docs):
     for name in files:
         full = os.path.join(root, name)
         rel = os.path.relpath(full, docs)
-        if name.endswith(".md"):
+        if name.endswith(".md") and rel in PUBLISHED:
             convert(full, os.path.join(src, rel), posixpath.join("docs", os.path.dirname(rel)).rstrip("/"))
 
 convert(os.path.join(snap, "README.md"), os.path.join(src, "README.md"), "")
